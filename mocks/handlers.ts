@@ -116,3 +116,167 @@ export const handlers = [
 
 // inside mocks/handlers.ts (merge into handlers array)
 
+
+
+// ---------------------------
+// VIDEOS (mock storage)
+// ---------------------------
+let mockVideos = [
+  {
+    id: 1,
+    title: "Welcome to Conclave",
+    speaker: "Nithin",
+    category: "Onboarding",
+    url: "https://example.com/video1",
+    status: true, // approved
+  },
+  {
+    id: 2,
+    title: "Innovation Hub Tour",
+    speaker: "Anurag",
+    category: "Innovation",
+    url: "https://example.com/video2",
+    status: false, // pending
+  },
+];
+
+// ---------------------------
+// GET VIDEOS LIST
+// ---------------------------
+handlers.push(
+  http.get("http://127.0.0.1:8000/admin/videos", () => {
+    return HttpResponse.json(mockVideos);
+  })
+);
+
+// ---------------------------
+// ADD VIDEO
+// matches addVideo() which sends JSON
+// ---------------------------
+handlers.push(
+  http.post("http://127.0.0.1:8000/admin/videos/add", async ({ request }) => {
+    const body = (await request.json().catch(() => ({}))) as any;
+
+    const newVideo = {
+      id: Math.floor(Math.random() * 100000),
+      title: body.title || "",
+      speaker: body.speaker || "",
+      category: body.category || "",
+      url: body.url || "",
+      // new videos start as pending
+      status: false,
+    };
+
+    mockVideos.push(newVideo);
+
+    return HttpResponse.json(newVideo, { status: 201 });
+  })
+);
+
+// ---------------------------
+// UPDATE VIDEO STATUS (TOGGLE)
+// matches updateVideoStatus(id) which sends JSON { id }
+// backend "negates" current status
+// ---------------------------
+handlers.push(
+  http.post(
+    "http://127.0.0.1:8000/admin/videos/updateStatus",
+    async ({ request }) => {
+      const body = (await request.json().catch(() => ({}))) as any;
+      const id = Number(body.id);
+
+      if (!id) {
+        return HttpResponse.json(
+          { error: "Missing or invalid id" },
+          { status: 400 }
+        );
+      }
+
+      const idx = mockVideos.findIndex((v) => v.id === id);
+      if (idx === -1) {
+        return HttpResponse.json({ error: "Video not found" }, { status: 404 });
+      }
+
+      // TOGGLE (negate) status here
+      mockVideos[idx] = {
+        ...mockVideos[idx],
+        status: !mockVideos[idx].status,
+      };
+
+      return HttpResponse.json(mockVideos[idx], { status: 200 });
+    }
+  )
+);
+
+// ---------------------------
+// PRODUCTS MOCK STORAGE
+// ---------------------------
+let mockProducts = [
+  {
+    id: 1,
+    name: "YONO SBI",
+    image_url: "https://placehold.co/80x60",
+    attachment_url: "https://example.com/yono.pdf",
+    created_at: "2025-10-31T10:19:31",
+    status: true,
+  },
+  {
+    id: 2,
+    name: "SBI Gold Loan",
+    image_url: "https://placehold.co/80x60",
+    attachment_url: "https://example.com/gold.pdf",
+    created_at: "2025-11-02T12:45:00",
+    status: false,
+  },
+];
+
+// GET PRODUCTS
+handlers.push(
+  http.get("http://127.0.0.1:8000/admin/products", () => {
+    return HttpResponse.json(mockProducts);
+  })
+);
+
+// ADD PRODUCT (FormData)
+handlers.push(
+  http.post("http://127.0.0.1:8000/admin/products/add", async ({ request }) => {
+    const fd = await request.formData();
+    const name = fd.get("name")?.toString() || "";
+
+    const img = fd.get("image") as File | null;
+    const att = fd.get("attachment") as File | null;
+
+    const newProduct = {
+      id: Math.floor(Math.random() * 10000),
+      name,
+      image_url: img ? URL.createObjectURL(img) : "",
+      attachment_url: att ? URL.createObjectURL(att) : "",
+      created_at: new Date().toISOString(),
+      status: false, // start as pending
+    };
+
+    mockProducts.push(newProduct);
+
+    return HttpResponse.json(newProduct, { status: 201 });
+  })
+);
+
+// UPDATE STATUS (toggle)
+handlers.push(
+  http.post("http://127.0.0.1:8000/admin/products/updateStatus", async ({ request }) => {
+    const body = (await request.json().catch(() => ({}))) as any;
+    const id = Number(body?.id ?? NaN);
+
+    if (!id || isNaN(id)) {
+      return HttpResponse.json({ error: "Missing or invalid id" }, { status: 400 });
+    }
+
+    const idx = mockProducts.findIndex((p) => p.id === id);
+    if (idx === -1) {
+      return HttpResponse.json({ error: "Product not found" }, { status: 404 });
+    }
+
+    mockProducts[idx].status = !mockProducts[idx].status;
+    return HttpResponse.json(mockProducts[idx], { status: 200 });
+  })
+);

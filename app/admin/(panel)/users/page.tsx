@@ -266,7 +266,7 @@ export default function UsersPage() {
                     />
 
                     <div style={{ marginTop: 8, color: "#666", fontSize: 12 }}>
-                        <strong>Name</strong> and <strong>Mobile Number</strong> are mandatory.
+                        <span style={{ color: "red" }}>*</span>  <strong>Name</strong> and <strong>Mobile Number</strong> are mandatory.
                         Other fields are optional.
                     </div>
 
@@ -345,7 +345,7 @@ export default function UsersPage() {
                                             <>
                                                 {u.status ? (
                                                     <div style={{ display: "flex", gap: 8 }}>
-                                                        <span style={{ padding: "6px 10px", borderRadius: 8, background: "#e6fff2", color: "#0a7a3f" }}>Approved</span>
+                                                        {/* <span style={{ padding: "6px 10px", borderRadius: 8, background: "#e6fff2", color: "#0a7a3f" }}>Approved</span> */}
                                                         <button
                                                             className="btn"
                                                             style={{ background: "#fff", color: "#c22053" }}

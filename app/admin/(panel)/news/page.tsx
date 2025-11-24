@@ -83,7 +83,6 @@ export default function NewsPage() {
     }
   }
 
-  // add news (status will default to false on backend)
   async function handleAdd(e?: React.FormEvent) {
     if (e) e.preventDefault();
     setError(null);
@@ -156,9 +155,8 @@ export default function NewsPage() {
         </div>
       )}
 
-      {/* Add news form – allowed for both roles; change if you want only super to add */}
       <form onSubmit={handleAdd} style={{ marginBottom: 20 }}>
-        <label style={{ fontWeight: 700, color: "#c22053" }}>News Content:</label>
+        <label style={{ fontWeight: 700, color: "#c22053" }}>News Content: <span style={{ color: "red" }}>*</span></label>
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}

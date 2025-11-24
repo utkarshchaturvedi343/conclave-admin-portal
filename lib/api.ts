@@ -11,6 +11,12 @@ export const ENDPOINTS = {
     USERS_ADD: "/admin/users/add",
     USERS_UPLOAD_CSV: "/admin/users/upload_csv",
     USERS_UPDATE_STATUS: "/admin/users/updateStatus",
+    VIDEO_LIST: "/admin/videos",
+    VIDEO_ADD: "/admin/videos/add",
+    VIDEO_UPDATE_STATUS: "/admin/videos/updateStatus",
+    PRODUCTS_LIST: "/admin/products",
+    PRODUCTS_ADD: "/admin/products/add",
+    PRODUCTS_UPDATE_STATUS: "/admin/products/updateStatus",
 };
 
 export async function apiRequest(path: string, options: RequestInit = {}) {
@@ -155,6 +161,56 @@ export async function uploadUsersCSV(file: File) {
 
 export async function updateUserStatus(id: number) {
     return apiRequest(ENDPOINTS.USERS_UPDATE_STATUS, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+    });
+}
+
+export async function getVideos() {
+    return apiRequest(ENDPOINTS.VIDEO_LIST, {
+        method: "GET",
+        headers: { Accept: "application/json" },
+    });
+}
+
+export async function addVideo(payload: {
+    title: string;
+    speaker?: string;
+    category?: string;
+    url: string;
+}) {
+    return apiRequest(ENDPOINTS.VIDEO_ADD, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+    });
+}
+
+export async function updateVideoStatus(id: number) {
+    return apiRequest(ENDPOINTS.VIDEO_UPDATE_STATUS, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+    });
+}
+
+export async function getProducts() {
+    return apiRequest(ENDPOINTS.PRODUCTS_LIST, {
+        method: "GET",
+        headers: { Accept: "application/json" },
+    });
+}
+
+export async function addProduct(form: FormData) {
+    return apiRequest(ENDPOINTS.PRODUCTS_ADD, {
+        method: "POST",
+        body: form,
+    });
+}
+
+export async function updateProductStatus(id: number) {
+    return apiRequest(ENDPOINTS.PRODUCTS_UPDATE_STATUS, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),
