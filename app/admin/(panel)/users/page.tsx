@@ -256,6 +256,7 @@ export default function UsersPage() {
                     <input
                         className="input"
                         value={mobile}
+                        minLength={10}
                         maxLength={10}
                         onChange={(e) => {
                             const val = e.target.value;

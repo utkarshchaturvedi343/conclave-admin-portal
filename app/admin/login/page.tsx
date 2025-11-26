@@ -29,6 +29,8 @@ export default function AdminLoginPage() {
       setError("Login failed. Check username/password.");
     } finally {
       setLoading(false);
+      setUsername("");
+      setPassword("");
     }
   }
 
@@ -66,6 +68,7 @@ export default function AdminLoginPage() {
             <input
               id="username"
               className="input"
+              autoComplete="off"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
@@ -77,6 +80,7 @@ export default function AdminLoginPage() {
             <input
               id="password"
               className="input"
+              autoComplete="off"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
