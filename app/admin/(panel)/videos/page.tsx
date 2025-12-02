@@ -23,9 +23,15 @@ export default function VideosPage() {
 
     const [title, setTitle] = useState("");
     const [caption, setCaption] = useState("");
-    const [url, setUrl] = useState("");
+    const [url, setUrl] = useState<File | null>(null);
 
     const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
+
+    // Editing states
+    const [editingId, setEditingId] = useState<number | null>(null);
+    const [editingTitle, setEditingTitle] = useState("");
+    const [editingCaption, setEditingCaption] = useState("");
+    const [editingUrl, setEditingUrl] = useState<File | null>(null);
 
     function normalizeItem(item: any): Video {
         const raw = item.status;
@@ -85,7 +91,7 @@ export default function VideosPage() {
         if (e) e.preventDefault();
         setError(null);
 
-        if (!title.trim() || !url.trim() || !caption.trim()) {
+        if (!title.trim() || !url || !caption.trim()) {
             setError("Please fill in all the details.");
             return;
         }
@@ -95,7 +101,7 @@ export default function VideosPage() {
             await addVideo({
                 title: title.trim(),
                 category: caption.trim() || undefined,
-                url: url.trim(),
+                url: url,
             });
 
             const data = await getVideos();
@@ -103,7 +109,7 @@ export default function VideosPage() {
 
             setTitle("");
             setCaption("");
-            setUrl("");
+            setUrl(null);
         } catch (err: any) {
             console.error(err);
             setError(err?.message || "Failed to add video.");
@@ -126,6 +132,53 @@ export default function VideosPage() {
             setError("Failed to update video status.");
         } finally {
             setActionLoadingId(null);
+        }
+    }
+
+    function startEdit(v: Video) {
+        setEditingId(v.id);
+        setEditingTitle(v.title || "");
+        setEditingCaption(v.caption || "");
+        setEditingUrl(null); // no file yet
+        setError(null);
+    }
+
+    function cancelEdit() {
+        setEditingId(null);
+        setEditingTitle("");
+        setEditingCaption("");
+        setEditingUrl(null);
+        setError(null);
+    }
+
+    async function saveEdit(id: number) {
+        if (!editingTitle.trim() || !editingCaption.trim()) {
+            setError("Please fill all required fields.");
+            return;
+        }
+
+        setSaving(true);
+        try {
+            const payload: any = {
+                id,
+                title: editingTitle.trim(),
+                category: editingCaption.trim(),
+            };
+            if (editingUrl instanceof File) {
+                payload.url = editingUrl;
+            }
+            await addVideo(payload);
+
+            // Reload list
+            const data = await getVideos();
+            setVideos(Array.isArray(data) ? data.map(normalizeItem) : []);
+
+            cancelEdit();
+        } catch (err: any) {
+            console.error(err);
+            setError("Failed to update video.");
+        } finally {
+            setSaving(false);
         }
     }
 
@@ -191,14 +244,35 @@ export default function VideosPage() {
                     <label className="form-label" style={{ marginTop: 8 }}>
                         Video URL <span style={{ color: "red" }}>*</span>
                     </label>
-                    <input
+                    {/* <input
                         className="input"
                         value={url}
                         onChange={(e) => setUrl(e.target.value)}
                         placeholder="Paste video URL"
                         required
+                    /> */}
+                    <input
+                        type="file"
+                        accept="video/*"
+                        style={{ marginTop: 6 }}
+                        onChange={(e) => {
+                            const file = e.target.files?.[0] || null;
+                            if (!file) {
+                                setUrl(null);
+                                return;
+                            }
+                            if (!file.type.startsWith("video/")) {
+                                setError(
+                                    "Please select a valid video file."
+                                );
+                                setUrl(null);
+                                e.target.value = "";
+                                return;
+                            }
+                            setError(null);
+                            setUrl(file);
+                        }}
                     />
-
                     <div style={{ marginTop: 12 }}>
                         <button className="btn btn-primary" type="submit" disabled={saving}>
                             {saving ? "Adding…" : "Add Video"}
@@ -229,10 +303,81 @@ export default function VideosPage() {
                             {videos.map((v) => (
                                 <tr key={v.id}>
                                     <td>{v.id}</td>
-                                    <td>{v.title}</td>
-                                    <td>{v.caption}</td>
+                                    {/* <td>{v.title}</td> */}
                                     <td>
+                                        {editingId === v.id ? (
+                                            <input
+                                                className="input"
+                                                style={{ width: "100%" }}
+                                                value={editingTitle}
+                                                onChange={(e) => setEditingTitle(e.target.value)}
+                                            />
+                                        ) : (
+                                            v.title
+                                        )}
+                                    </td>
+                                    {/* <td>{v.caption}</td> */}
+                                    <td>
+                                        {editingId === v.id ? (
+                                            <input
+                                                className="input"
+                                                style={{
+                                                    width: "100%",
+                                                    resize: "vertical",
+                                                    minHeight: 60,
+                                                    maxHeight: 200,
+                                                }}
+                                                value={editingCaption}
+                                                onChange={(e) => setEditingCaption(e.target.value)}
+                                            />
+                                        ) : (
+                                            v.caption
+                                        )}
+                                    </td>
+                                    {/* <td>
                                         {v.url ? (
+                                            <video
+                                                src={v.url}
+                                                controls
+                                                style={{ maxWidth: 180, borderRadius: 8 }}
+                                            />
+                                        ) : (
+                                            "-"
+                                        )}
+                                    </td> */}
+                                    <td>
+                                        {editingId === v.id ? (
+                                            <div
+                                                style={{
+                                                    minHeight: 60,
+                                                    padding: 6,
+                                                    border: "1px solid #ddd",
+                                                    borderRadius: 6,
+                                                    background: "#fafafa",
+                                                }}
+                                            >
+                                                <input
+                                                    type="file"
+                                                    accept="video/*"
+                                                    style={{ width: "100%", padding: 6 }}
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0] || null;
+                                                        if (!file) {
+                                                            setEditingUrl(null);
+                                                            return;
+                                                        }
+                                                        if (!file.type.startsWith("video/")) {
+                                                            setError("Please select a valid video file.");
+                                                            setEditingUrl(null);
+                                                            e.target.value = "";
+                                                            return;
+                                                        }
+                                                        setError(null);
+                                                        setEditingUrl(file);
+                                                    }}
+                                                />
+                                            </div>
+                                        ) : v.url ? (
                                             <video
                                                 src={v.url}
                                                 controls
@@ -244,42 +389,108 @@ export default function VideosPage() {
                                     </td>
                                     <td>
                                         {isSuper ? (
-                                            <>
-                                                {v.status ? (
-                                                    <div style={{ display: "flex", gap: 8 }}>
-                                                        <button
-                                                            className="btn"
-                                                            style={{ background: "#fff", color: "#c22053" }}
-                                                            onClick={() => setStatus(v.id, false)}
-                                                            disabled={actionLoadingId === v.id}
-                                                        >
-                                                            {actionLoadingId === v.id ? "..." : "Delete"}
-                                                        </button>
-                                                    </div>
-                                                ) : (
-                                                    <div style={{ display: "flex", gap: 8 }}>
-                                                        <button
-                                                            className="btn"
-                                                            style={{ background: "#fff", color: "#2b2b2b" }}
-                                                            onClick={() => setStatus(v.id, true)}
-                                                            disabled={actionLoadingId === v.id}
-                                                        >
-                                                            {actionLoadingId === v.id ? "..." : "Approve"}
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </>
+                                            v.status ? (
+                                                <button
+                                                    className="btn"
+                                                    style={{
+                                                        background: "#fff",
+                                                        color: "#c22053",
+                                                        border: "1px solid rgba(194,32,83,0.12)",
+                                                        padding: "6px 10px",
+                                                        borderRadius: 8,
+                                                    }}
+                                                    onClick={() => updateVideoStatus(v.id)}
+                                                >
+                                                    Delete
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    className="btn"
+                                                    style={{
+                                                        background: "#fff",
+                                                        color: "#2b2b2b",
+                                                        border: "1px solid rgba(194,32,83,0.12)",
+                                                        padding: "6px 10px",
+                                                        borderRadius: 8,
+                                                    }}
+                                                    onClick={() => updateVideoStatus(v.id)}
+                                                >
+                                                    Approve
+                                                </button>
+                                            )
+                                        ) : editingId === v.id ? (
+                                            <div style={{ display: "flex", gap: 8 }}>
+                                                <button
+                                                    className="btn btn-primary"
+                                                    onClick={() => saveEdit(v.id)}
+                                                    disabled={saving}
+                                                >
+                                                    {saving ? "Saving…" : "Save"}
+                                                </button>
+
+                                                <button
+                                                    className="btn"
+                                                    onClick={cancelEdit}
+                                                    style={{ background: "#fff", color: "#c22053" }}
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </div>
                                         ) : (
-                                            <span
-                                                style={{
-                                                    padding: "6px 10px",
-                                                    borderRadius: 8,
-                                                    background: v.status ? "#e6fff2" : "#fff6f6",
-                                                    color: v.status ? "#0a7a3f" : "#b30000",
-                                                }}
-                                            >
-                                                {v.status ? "Approved" : "Pending"}
-                                            </span>
+                                            // <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                                            //     <span
+                                            //         style={{
+                                            //             padding: "6px 10px",
+                                            //             borderRadius: 8,
+                                            //             background: a.status ? "#e6fff2" : "#fff6f6",
+                                            //             color: a.status ? "#0a7a3f" : "#b30000",
+                                            //         }}
+                                            //     >
+                                            //         {a.status ? "Approved" : "Pending"}
+                                            //     </span>
+
+                                            //     <button
+                                            //         className="btn"
+                                            //         style={{
+                                            //             background: "#fff",
+                                            //             color: "#2b2b2b",
+                                            //             border: "1px solid rgba(0,0,0,0.06)",
+                                            //             padding: "6px 10px",
+                                            //             borderRadius: 8,
+                                            //         }}
+                                            //         onClick={() => startEdit(a)}
+                                            //     >
+                                            //         Edit
+                                            //     </button>
+                                            // </div>
+                                            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                                                <span
+                                                    style={{
+                                                        padding: "6px 10px",
+                                                        borderRadius: 8,
+                                                        background: v.status ? "#e6fff2" : "#fff6f6",
+                                                        color: v.status ? "#0a7a3f" : "#b30000",
+                                                    }}
+                                                >
+                                                    {v.status ? "Approved" : "Pending"}
+                                                </span>
+
+                                                {editingId === null || editingId === v.id ? (
+                                                    <button
+                                                        className="btn"
+                                                        style={{
+                                                            background: "#fff",
+                                                            color: "#2b2b2b",
+                                                            border: "1px solid rgba(0,0,0,0.06)",
+                                                            padding: "6px 10px",
+                                                            borderRadius: 8,
+                                                        }}
+                                                        onClick={() => startEdit(v)}
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                ) : null}
+                                            </div>
                                         )}
                                     </td>
                                 </tr>

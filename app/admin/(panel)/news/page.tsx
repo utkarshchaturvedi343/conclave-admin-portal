@@ -110,7 +110,7 @@ export default function NewsPage() {
     const cleaned = sanitizeNewsContent(content);
 
     if (!cleaned) {
-      setError("Please enter news content (HTML is not allowed).");
+      setError("Please enter news content (no special characters).");
       return;
     }
 
@@ -181,7 +181,7 @@ export default function NewsPage() {
     const cleaned = sanitizeNewsContent(editingContent);
 
     if (!cleaned) {
-      setError("Please enter news content (HTML is not allowed).");
+      setError("Please enter news content (no special characters).");
       return;
     }
     if (cleaned.length > NEWS_MAX_LENGTH) {
@@ -236,11 +236,18 @@ export default function NewsPage() {
           News Content: <span style={{ color: "red" }}>*</span>
         </label>
         <textarea
+          style={{
+            width: "100%",
+            minHeight: 70,
+            maxHeight: "180px",
+            overflow: "hidden",
+            resize: "vertical",
+            marginTop: 8
+          }}
           value={content}
           onChange={(e) => setContent(e.target.value)}
           rows={4}
           className="input"
-          style={{ marginTop: 8 }}
           placeholder="Enter news..."
           maxLength={NEWS_MAX_LENGTH}
         />
@@ -264,7 +271,7 @@ export default function NewsPage() {
                 <th style={{ width: 80 }}>ID</th>
                 <th>Content</th>
                 <th style={{ width: 220 }}>Created At</th>
-                <th style={{ width: 220 }}>{isSuper ? "Actions" : "Status / Actions"}</th>
+                <th style={{ width: 220 }}>{isSuper ? "Actions" : "Status"}</th>
               </tr>
             </thead>
             <tbody>
@@ -277,7 +284,14 @@ export default function NewsPage() {
                         <textarea
                           value={editingContent}
                           rows={4}
-                          style={{ width: "100%" }}
+                          style={{
+                            width: "100%",
+                            minHeight: 70,
+                            maxHeight: "180px",
+                            overflow: "hidden",
+                            resize: "vertical",
+                            // scrollbarGutter:"auto"
+                          }}
                           onChange={(e) => setEditingContent(e.target.value)}
                           maxLength={NEWS_MAX_LENGTH}
                         />

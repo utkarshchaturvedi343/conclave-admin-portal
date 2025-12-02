@@ -5,7 +5,8 @@ import {
     API_BASE,
     getAgendas,
     addAgenda,
-    deleteAgenda, // this hits /admin/agendas/updateStatus/:id
+    deleteAgenda,
+    editAgenda,
 } from "@/lib/api";
 import { getMockRole } from "@/lib/mockRole";
 
@@ -15,9 +16,13 @@ type AgendaItem = {
     description?: string;
     datetime?: string;
     location?: string;
-    image_url?: string | null;
+    image_url?: File | null;
     status?: boolean;
 };
+
+const TITLE_MAX_LENGTH = 20;
+const DESCRIPTION_MAX_LENGTH = 200;
+const LOCATION_MAX_LENGTH = 20;
 
 export default function AgendasPage() {
     const imageInputRef = useRef<HTMLInputElement | null>(null);
@@ -38,6 +43,14 @@ export default function AgendasPage() {
     const isSuper = role === "super";
 
     const [minDateTime, setMinDateTime] = useState<string>("");
+
+    // editing state
+    const [editingId, setEditingId] = useState<number | null>(null);
+    const [editingTitle, setEditingTitle] = useState<string>("");
+    const [editingDescription, setEditingDescription] = useState<string>("");
+    const [editingDateTime, setEditingDateTime] = useState("");
+    const [editingLocation, setEditingLocation] = useState<string>("");
+    const [editingImageUrl, setEditingImageUrl] = useState<File | null>(null);
 
     // ---------- helpers ----------
 
@@ -94,6 +107,8 @@ export default function AgendasPage() {
 
     // strip special characters: only letters, numbers, spaces
     function sanitizeText(value: string) {
+        value.trim();
+        value.replace(/<[^>]*>/g, "");
         return value.replace(/[^A-Za-z0-9\s]/g, "");
     }
 
@@ -235,6 +250,77 @@ export default function AgendasPage() {
         }
     }
 
+    // ----- edit flow (validation same as add) -----
+    function startEdit(it: AgendaItem) {
+        setEditingId(it.id);
+        setEditingTitle(it.title ?? "");
+        setEditingDescription(it.description ?? "");
+        setEditingDateTime(it.datetime ?? "");
+        setEditingImageUrl(it.image_url ?? null);
+        setEditingLocation(it.location ?? "")
+        setError(null);
+    }
+
+    function cancelEdit() {
+        setEditingId(null);
+        setEditingDateTime("");
+        setEditingDescription("");
+        setEditingImageUrl(null);
+        setEditingLocation("");
+        setEditingTitle("");
+        setError(null);
+    }
+
+    async function saveEdit(id: number) {
+        setError(null);
+
+        const cleanedDescrition = sanitizeText(editingDescription);
+        const cleanedLocation = sanitizeText(editingLocation);
+        const cleanedTitle = sanitizeText(editingTitle);
+
+        if (!cleanedDescrition) {
+            setError("Please enter Description without any special characters.");
+            return;
+        }
+
+        if (!cleanedLocation) {
+            setError("Please enter Location without any special characters.");
+            return;
+        }
+
+        if (!cleanedTitle) {
+            setError("Please enter Title without any special characters.");
+            return;
+        }
+
+        if (!editingDateTime) return setError("Date & time required.");
+
+        setSaving(true);
+        try {
+            const fd = new FormData();
+            fd.append("id", String(id));
+            fd.append("title", cleanedTitle.trim());
+            fd.append("description", cleanedDescrition.trim());
+            fd.append("datetime", datetime);
+            fd.append("location", cleanedLocation.trim());
+            if (editingImageUrl) fd.append("image", editingImageUrl);
+            await addAgenda(fd);
+
+            const data = await getAgendas();
+            const arr = Array.isArray(data) ? data.map(normalizeAgenda) : [];
+            setItems(arr);
+
+            setItems((prev) => prev.map((p) => (p.id === id ? { ...p, status: false } : p)));
+
+            cancelEdit();
+        } catch (err: any) {
+            console.error(err);
+            setError(err?.message ? String(err.message) : "Failed to update Agenda.");
+        } finally {
+            setSaving(false);
+        }
+    }
+
     // ---------- UI ----------
 
     return (
@@ -290,21 +376,23 @@ export default function AgendasPage() {
                                 style={{ marginTop: 6, width: "100%" }}
                                 placeholder="Title"
                                 value={title}
-                                maxLength={20}
+                                maxLength={TITLE_MAX_LENGTH}
                                 onChange={(e) => setTitle(sanitizeText(e.target.value))}
                             />
                         </div>
 
                         <div style={{ marginBottom: 10 }}>
-                            <label style={{ fontWeight: 700, color: "#c22053" }}>
+                            <label style={{ fontWeight: 700, color: "#c22053", resize: "vertical", maxHeight: "200px" }}>
                                 Description: <span style={{ color: "red" }}>*</span>
                             </label>
                             <textarea
                                 className="input"
-                                style={{ marginTop: 6, width: "100%", minHeight: 70 }}
+                                style={{
+                                    marginTop: 6, width: "100%", minHeight: 70, resize: "vertical", maxHeight: "180px", overflow: "hidden",
+                                }}
                                 placeholder="Description"
                                 value={description}
-                                maxLength={200}
+                                maxLength={DESCRIPTION_MAX_LENGTH}
 
                                 onChange={(e) =>
                                     setDescription(sanitizeText(e.target.value))
@@ -336,7 +424,7 @@ export default function AgendasPage() {
                                 style={{ marginTop: 6, width: "100%" }}
                                 placeholder="Location"
                                 value={location}
-                                maxLength={20}
+                                maxLength={LOCATION_MAX_LENGTH}
                                 onChange={(e) =>
                                     setLocation(sanitizeText(e.target.value))
                                 }
@@ -413,11 +501,49 @@ export default function AgendasPage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {items.map((a, idx) => (
+                            {items.map((a) => (
                                 <tr key={a.id}>
-                                    <td>{idx + 1}</td>
+                                    <td>{a.id}</td>
                                     <td>
-                                        {a.image_url ? (
+                                        {editingId === a.id ? (
+                                            <div
+                                                style={{
+                                                    minHeight: "60px",
+                                                    minWidth: "100px",
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    padding: "6px",
+                                                    border: "1px solid #ddd",
+                                                    borderRadius: "6px",
+                                                    background: "#fafafa",
+                                                }}
+                                            >
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    style={{
+                                                        width: "100%",
+                                                        padding: "6px",
+                                                        cursor: "pointer",
+                                                    }}
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0] || null;
+                                                        if (!file) {
+                                                            setEditingImageUrl(null);
+                                                            return;
+                                                        }
+                                                        if (!file.type.startsWith("image/")) {
+                                                            setError("Please select a valid image file (jpg, png, etc.).");
+                                                            setImageFile(null);
+                                                            e.target.value = "";
+                                                            return;
+                                                        }
+                                                        setError(null);
+                                                        setEditingImageUrl(file);
+                                                    }}
+                                                />
+                                            </div>
+                                        ) : a.image_url ? (
                                             <img
                                                 src={a.image_url}
                                                 alt={a.title}
@@ -425,26 +551,70 @@ export default function AgendasPage() {
                                                     maxHeight: 40,
                                                     maxWidth: 70,
                                                     objectFit: "cover",
+                                                    borderRadius: 4,
+                                                    border: "1px solid #eee",
                                                 }}
                                             />
                                         ) : (
                                             "-"
                                         )}
                                     </td>
-                                    <td>{a.title}</td>
-                                    <td>{fmtDateTime(a.datetime)}</td>
-                                    <td>{a.location || "-"}</td>
+                                    <td>
+                                        {editingId === a.id ? (
+                                            <textarea
+                                                style={{
+                                                    // resize: "vertical",
+                                                    width: "100%",
+                                                    minHeight: 70,
+                                                    maxHeight: "180px",
+                                                    overflow: "hidden",
+                                                    minWidth: 100,
+                                                    maxWidth: "180px"
+                                                }}
+                                                rows={4}
+                                                value={editingTitle}
+                                                maxLength={TITLE_MAX_LENGTH}
+                                                onChange={(e) => setEditingTitle(sanitizeText(e.target.value))}
+                                            />
+                                        ) : (
+                                            a.title
+                                        )}
+                                    </td>
+                                    <td>
+                                        {editingId === a.id ? (
+                                            <input
+                                                type="datetime-local"
+                                                style={{ width: "100%" }}
+                                                value={editingDateTime}
+                                                min={minDateTime}
+                                                onChange={(e) => setEditingDateTime(e.target.value)}
+                                            />
+                                        ) : (
+                                            fmtDateTime(a.datetime)
+                                        )}
+                                    </td>
+                                    <td>
+                                        {editingId === a.id ? (
+                                            <input
+                                                type="text"
+                                                value={editingLocation}
+                                                maxLength={LOCATION_MAX_LENGTH}
+                                                style={{ width: "100%" }}
+                                                onChange={(e) => setEditingLocation(sanitizeText(e.target.value))}
+                                            />
+                                        ) : (
+                                            a.location || "-"
+                                        )}
+                                    </td>
                                     <td>
                                         {isSuper ? (
                                             a.status ? (
-                                                // APPROVED → Delete
                                                 <button
                                                     className="btn"
                                                     style={{
                                                         background: "#fff",
                                                         color: "#c22053",
-                                                        border:
-                                                            "1px solid rgba(194,32,83,0.12)",
+                                                        border: "1px solid rgba(194,32,83,0.12)",
                                                         padding: "6px 10px",
                                                         borderRadius: 8,
                                                     }}
@@ -453,39 +623,96 @@ export default function AgendasPage() {
                                                     Delete
                                                 </button>
                                             ) : (
-                                                // PENDING → Approve
                                                 <button
                                                     className="btn"
                                                     style={{
                                                         background: "#fff",
                                                         color: "#2b2b2b",
-                                                        border:
-                                                            "1px solid rgba(194,32,83,0.12)",
+                                                        border: "1px solid rgba(194,32,83,0.12)",
                                                         padding: "6px 10px",
                                                         borderRadius: 8,
                                                     }}
-                                                    onClick={() =>
-                                                        handleApprove(a.id, a.status)
-                                                    }
+                                                    onClick={() => handleApprove(a.id, a.status)}
                                                 >
                                                     Approve
                                                 </button>
                                             )
+                                        ) : editingId === a.id ? (
+                                            <div style={{ display: "flex", gap: 8 }}>
+                                                <button
+                                                    className="btn btn-primary"
+                                                    onClick={() => saveEdit(a.id)}
+                                                    disabled={saving}
+                                                >
+                                                    {saving ? "Saving…" : "Save"}
+                                                </button>
+
+                                                <button
+                                                    className="btn"
+                                                    onClick={cancelEdit}
+                                                    style={{ background: "#fff", color: "#c22053" }}
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </div>
                                         ) : (
-                                            <span
-                                                style={{
-                                                    padding: "6px 10px",
-                                                    borderRadius: 8,
-                                                    background: a.status
-                                                        ? "#e6fff2"
-                                                        : "#fff6f6",
-                                                    color: a.status ? "#0a7a3f" : "#b30000",
-                                                }}
-                                            >
-                                                {a.status ? "Approved" : "Pending"}
-                                            </span>
+                                            // <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                                            //     <span
+                                            //         style={{
+                                            //             padding: "6px 10px",
+                                            //             borderRadius: 8,
+                                            //             background: a.status ? "#e6fff2" : "#fff6f6",
+                                            //             color: a.status ? "#0a7a3f" : "#b30000",
+                                            //         }}
+                                            //     >
+                                            //         {a.status ? "Approved" : "Pending"}
+                                            //     </span>
+
+                                            //     <button
+                                            //         className="btn"
+                                            //         style={{
+                                            //             background: "#fff",
+                                            //             color: "#2b2b2b",
+                                            //             border: "1px solid rgba(0,0,0,0.06)",
+                                            //             padding: "6px 10px",
+                                            //             borderRadius: 8,
+                                            //         }}
+                                            //         onClick={() => startEdit(a)}
+                                            //     >
+                                            //         Edit
+                                            //     </button>
+                                            // </div>
+                                            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                                                <span
+                                                    style={{
+                                                        padding: "6px 10px",
+                                                        borderRadius: 8,
+                                                        background: a.status ? "#e6fff2" : "#fff6f6",
+                                                        color: a.status ? "#0a7a3f" : "#b30000",
+                                                    }}
+                                                >
+                                                    {a.status ? "Approved" : "Pending"}
+                                                </span>
+
+                                                {editingId === null || editingId === a.id ? (
+                                                    <button
+                                                        className="btn"
+                                                        style={{
+                                                            background: "#fff",
+                                                            color: "#2b2b2b",
+                                                            border: "1px solid rgba(0,0,0,0.06)",
+                                                            padding: "6px 10px",
+                                                            borderRadius: 8,
+                                                        }}
+                                                        onClick={() => startEdit(a)}
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                ) : null}
+                                            </div>
                                         )}
                                     </td>
+
                                 </tr>
                             ))}
                         </tbody>

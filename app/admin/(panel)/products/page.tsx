@@ -31,6 +31,12 @@ export default function ProductsPage() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // Editing states
+    const [editingId, setEditingId] = useState<number | null>(null);
+    const [editingName, setEditingName] = useState("");
+    const [editingImageFile, setEditingImageFile] = useState<File | null>(null);
+    const [editingAttachmentFile, setEditingAttachmentFile] = useState<File | null>(null);
+
     const [role, setRole] = useState<"user" | "super" | null>(null);
     const isSuper = role === "super";
 
@@ -167,6 +173,66 @@ export default function ProductsPage() {
         } catch (err) {
             console.error(err);
             setError("Failed to delete product.");
+        }
+    }
+
+    function startEdit(p: ProductItem) {
+        setEditingId(p.id);
+        setEditingName(p.name);
+        setEditingImageFile(imageFile);
+        setEditingAttachmentFile(attachmentFile);
+        setError(null);
+    }
+
+    function cancelEdit() {
+        setEditingId(null);
+        setEditingName("");
+        setEditingImageFile(null);
+        setEditingAttachmentFile(null);
+        setError(null);
+    }
+
+    async function saveEdit(id: number) {
+        if (!editingName.trim()) {
+            setError("Product name is required.");
+            return;
+        }
+
+        if (!editingAttachmentFile) {
+            setError("Attachment File can not be empty.");
+            return;
+        }
+
+        if (!editingImageFile) {
+            setError("Image File can not be empty.");
+            return;
+        }
+
+        setSaving(true);
+        try {
+            const fd = new FormData();
+            fd.append("id", String(id));
+            fd.append("name", editingName.trim());
+            if (editingImageFile) fd.append("image", editingImageFile);
+            if (editingAttachmentFile) fd.append("attachment", editingAttachmentFile);
+
+            await addProduct(fd);
+
+            await reload();
+
+            // Set product as pending after edit
+            setItems((prev) =>
+                prev.map((p) =>
+                    p.id === id ? { ...p, status: false } : p
+                )
+            );
+
+            cancelEdit();
+        } catch (err: any) {
+            console.error(err);
+            setError("Failed to save product.");
+        } finally {
+            setSaving(false);
         }
     }
 
@@ -330,35 +396,123 @@ export default function ProductsPage() {
                             {items.map((p) => (
                                 <tr key={p.id}>
                                     <td>{p.id}</td>
-                                    <td>{p.name}</td>
+                                    {/* <td>{p.name}</td> */}
                                     <td>
-                                        {p.image_url ? (
+                                        {editingId === p.id ? (
+                                            <input
+                                                type="text"
+                                                value={editingName}
+                                                maxLength={20}
+                                                style={{ width: "100%" }}
+                                                onChange={(e) => setEditingName(e.target.value)}
+                                            />
+                                        ) : (
+                                            p.name || "-"
+                                        )}
+                                    </td>
+                                    <td>
+                                        {/* <input
+                                            ref={imageInputRef}
+                                            type="file"
+                                            accept="image/*"
+                                            style={{ marginTop: 6 }}
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0] || null;
+                                                if (!file) {
+                                                    setImageFile(null);
+                                                    return;
+                                                }
+                                                if (!file.type.startsWith("image/")) {
+                                                    setError(
+                                                        "Please select a valid image file (jpg, png, etc.)."
+                                                    );
+                                                    setImageFile(null);
+                                                    e.target.value = ""; // clear input
+                                                    return;
+                                                }
+                                                setError(null);
+                                                setImageFile(file);
+                                            }}
+                                        /> */}
+                                        {editingId === p.id ? (
+                                            <div
+                                                style={{
+                                                    minHeight: "10px",
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    padding: "6px",
+                                                    border: "1px solid #ddd",
+                                                    borderRadius: "6px",
+                                                    background: "#fafafa",
+                                                    minWidth: 100,
+                                                    maxWidth: 100
+                                                }}
+                                            >
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    style={{ width: "100%", padding: 6 }}
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0] || null;
+                                                        setEditingImageFile(file);
+                                                        if (!file) {
+                                                            setEditingImageFile(null);
+                                                            return;
+                                                        }
+                                                        if (!file.type.startsWith("image/")) {
+                                                            setError("Please select a valid image file (jpg, png, etc.).");
+                                                            setEditingImageFile(null);
+                                                            e.target.value = "";
+                                                            return;
+                                                        }
+                                                        setError(null);
+                                                        setEditingImageFile(file);
+                                                    }}
+                                                />
+                                            </div>
+                                        ) : p.image_url ? (
                                             <img
                                                 src={p.image_url}
                                                 alt={p.name}
-                                                style={{
-                                                    maxHeight: 40,
-                                                    maxWidth: 80,
-                                                    objectFit: "contain",
-                                                }}
+                                                style={{ maxHeight: 40, maxWidth: 80, objectFit: "contain" }}
                                             />
                                         ) : (
                                             "-"
                                         )}
                                     </td>
                                     <td>
-                                        {p.attachment_url ? (
-                                            <a
-                                                href={p.attachment_url}
-                                                target="_blank"
-                                                rel="noreferrer"
+                                        {editingId === p.id ? (
+                                            <div
+                                                style={{
+                                                    minHeight: "10px",
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    padding: "6px",
+                                                    border: "1px solid #ddd",
+                                                    borderRadius: "6px",
+                                                    background: "#fafafa",
+                                                    minWidth: 100,
+                                                    maxWidth: 100
+                                                }}
                                             >
+                                                <input
+                                                    type="file"
+                                                    accept="application/pdf,image/*"
+                                                    style={{ width: "100%", padding: 6 }}
+                                                    onChange={(e) =>
+                                                        setEditingAttachmentFile(e.target.files?.[0] || null)
+                                                    }
+                                                />
+                                            </div>
+                                        ) : p.attachment_url ? (
+                                            <a href={p.attachment_url} target="_blank" rel="noreferrer">
                                                 View
                                             </a>
                                         ) : (
                                             "-"
                                         )}
                                     </td>
+
                                     <td>{fmtDate(p.created_at)}</td>
                                     <td>
                                         {isSuper ? (
@@ -397,20 +551,55 @@ export default function ProductsPage() {
                                                     Approve
                                                 </button>
                                             )
+                                        ) : editingId === p.id ? (
+                                            <div style={{ display: "flex", gap: 8 }}>
+                                                <button
+                                                    className="btn btn-primary"
+                                                    onClick={() => saveEdit(p.id)}
+                                                    disabled={saving}
+                                                >
+                                                    {saving ? "Saving…" : "Save"}
+                                                </button>
+
+                                                <button
+                                                    className="btn"
+                                                    onClick={cancelEdit}
+                                                    style={{ background: "#fff", color: "#c22053" }}
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </div>
                                         ) : (
-                                            // Normal user: badge only
-                                            <span
-                                                style={{
-                                                    padding: "6px 10px",
-                                                    borderRadius: 8,
-                                                    background: p.status
-                                                        ? "#e6fff2"
-                                                        : "#fff6f6",
-                                                    color: p.status ? "#0a7a3f" : "#b30000",
-                                                }}
-                                            >
-                                                {p.status ? "Approved" : "Pending"}
-                                            </span>
+                                            // Normal user
+                                            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                                                <span
+                                                    style={{
+                                                        padding: "6px 10px",
+                                                        borderRadius: 8,
+                                                        background: p.status ? "#e6fff2" : "#fff6f6",
+                                                        color: p.status ? "#0a7a3f" : "#b30000",
+                                                    }}
+                                                >
+                                                    {p.status ? "Approved" : "Pending"}
+                                                </span>
+
+                                                {editingId === null || editingId === p.id ? (
+                                                    <button
+                                                        className="btn"
+                                                        style={{
+                                                            background: "#fff",
+                                                            color: "#2b2b2b",
+                                                            border: "1px solid rgba(0,0,0,0.06)",
+                                                            padding: "6px 10px",
+                                                            borderRadius: 8,
+                                                        }}
+                                                        onClick={() => startEdit(p)}
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                ) : null}
+                                            </div>
+
                                         )}
                                     </td>
                                 </tr>

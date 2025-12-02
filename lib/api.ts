@@ -1,3 +1,5 @@
+import { getCsrfToken } from "./csrf";
+
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL;
 
 export const ENDPOINTS = {
@@ -21,14 +23,19 @@ export const ENDPOINTS = {
     getAgendas: "/admin/agendas",
     addAgenda: "/admin/agendas/add",
     updateAgendaStatus: (id: number | string) => `/admin/agendas/updateStatus/${id}`,
+    editAgenda: "/admin/agendas/edit",
 };
 
 export async function apiRequest(path: string, options: RequestInit = {}) {
     const url = `${API_BASE}${path}`;
-
+    const csrf = getCsrfToken();
     const req: RequestInit = {
         credentials: "include",
         mode: "cors",
+        headers: {
+            ...(options.headers || {}),
+            ...(csrf ? { "X-CSRF-Token": csrf } : {}),
+        },
         ...options,
     };
 
@@ -189,7 +196,7 @@ export async function addVideo(payload: {
     title: string;
     speaker?: string;
     category?: string;
-    url: string;
+    url: File;
 }) {
     return apiRequest(ENDPOINTS.VIDEO_ADD, {
         method: "POST",
@@ -245,5 +252,12 @@ export async function addAgenda(fd: FormData) {
 export async function deleteAgenda(id: number) {
     return apiRequest(ENDPOINTS.updateAgendaStatus(id), {
         method: "POST",
+    });
+}
+
+export async function editAgenda(payload: FormData) {
+    return apiRequest(ENDPOINTS.editAgenda, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: payload,
     });
 }
