@@ -301,7 +301,7 @@ export default function AgendasPage() {
             fd.append("id", String(id));
             fd.append("title", cleanedTitle.trim());
             fd.append("description", cleanedDescrition.trim());
-            fd.append("datetime", datetime);
+            fd.append("date_time", datetime);
             fd.append("location", cleanedLocation.trim());
             if (editingImageUrl) fd.append("image", editingImageUrl);
             await addAgenda(fd);

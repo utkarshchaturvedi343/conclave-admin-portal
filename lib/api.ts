@@ -8,18 +8,18 @@ export const ENDPOINTS = {
     NEWS_LIST: "/admin/news",
     NEWS_ADD: "/admin/news/add",
     NEWS_DELETE: (id: number | string) => `/admin/news/delete/${id}`,
-    NEWS_UPDATE_STATUS: "/admin/news/updateStatus",
+    NEWS_UPDATE_STATUS: (id: number | string) => `/admin/news/update/${id}`,
     NEWS_EDIT: `/admin/news/edit`,
     USERS_LIST: "/admin/users",
     USERS_ADD: "/admin/users/add",
     USERS_UPLOAD_CSV: "/admin/users/upload_csv",
-    USERS_UPDATE_STATUS: "/admin/users/updateStatus",
+    USERS_UPDATE_STATUS: (id: number | string) => `/admin/users/update/${id}`,
     VIDEO_LIST: "/admin/videos",
     VIDEO_ADD: "/admin/videos/add",
-    VIDEO_UPDATE_STATUS: "/admin/videos/updateStatus",
+    VIDEO_UPDATE_STATUS: (id: number | string) => `/admin/videos/update/${id}`,
     PRODUCTS_LIST: "/admin/products",
     PRODUCTS_ADD: "/admin/products/add",
-    PRODUCTS_UPDATE_STATUS: "/admin/products/updateStatus",
+    PRODUCTS_UPDATE_STATUS: (id: number | string) => `/admin/products/updateStatus/${id}`,
     getAgendas: "/admin/agendas",
     addAgenda: "/admin/agendas/add",
     updateAgendaStatus: (id: number | string) => `/admin/agendas/updateStatus/${id}`,
@@ -130,10 +130,9 @@ export async function deleteNews(id: number) {
 }
 
 export async function updateNewsStatus(id: number) {
-    return apiRequest(ENDPOINTS.NEWS_UPDATE_STATUS, {
+    return apiRequest(ENDPOINTS.NEWS_UPDATE_STATUS(id), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
     });
 }
 
@@ -178,10 +177,9 @@ export async function uploadUsersCSV(file: File) {
 }
 
 export async function updateUserStatus(id: number) {
-    return apiRequest(ENDPOINTS.USERS_UPDATE_STATUS, {
+    return apiRequest(ENDPOINTS.USERS_UPDATE_STATUS(id), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
     });
 }
 
@@ -206,10 +204,9 @@ export async function addVideo(payload: {
 }
 
 export async function updateVideoStatus(id: number) {
-    return apiRequest(ENDPOINTS.VIDEO_UPDATE_STATUS, {
+    return apiRequest(ENDPOINTS.VIDEO_UPDATE_STATUS(id), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
     });
 }
 
@@ -228,10 +225,9 @@ export async function addProduct(form: FormData) {
 }
 
 export async function updateProductStatus(id: number) {
-    return apiRequest(ENDPOINTS.PRODUCTS_UPDATE_STATUS, {
+    return apiRequest(ENDPOINTS.PRODUCTS_UPDATE_STATUS(id), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
     });
 }
 
@@ -260,4 +256,14 @@ export async function editAgenda(payload: FormData) {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: payload,
     });
+}
+
+export async function fetchAdminTabs() {
+    const res = await fetch(process.env.NEXT_PUBLIC_API_URL + "/menu/appconfig", {
+        credentials: "include",
+    });
+
+    if (!res.ok) throw new Error("Failed to load admin tabs");
+
+    return res.json();
 }

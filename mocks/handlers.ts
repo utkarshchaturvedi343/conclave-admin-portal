@@ -345,58 +345,71 @@ export const handlers = [
       return HttpResponse.json(mockProducts[idx], { status: 200 });
     }
   ),
-  
-  
 
 
-// ---------------------------
-// AGENDAS
-// ---------------------------
 
-// GET AGENDAS
-http.get("http://127.0.0.1:8000/admin/agendas", () => {
-  return HttpResponse.json(mockAgendas);
-}),
 
-// ADD AGENDA (FormData)
-http.post(
-  "http://127.0.0.1:8000/admin/agendas/add",
-  async ({ request }) => {
-    const fd = await request.formData();
-    
-    const title = fd.get("title")?.toString() || "";
-    const description = fd.get("description")?.toString() || "";
-    const datetime = fd.get("datetime")?.toString() || "";
-    const location = fd.get("location")?.toString() || "";
-    const img = fd.get("image") as File | null;
-    
-    const newAgenda = {
-      id: Math.floor(Math.random() * 10000),
-      title,
-      description,
-      datetime,
-      location,
-      image_url: img ? URL.createObjectURL(img) : "",
-      status: false, // start as inactive
-    };
-    
-    mockAgendas.push(newAgenda);
-    
-    return HttpResponse.json(newAgenda, { status: 201 });
-  }
-),
+  // ---------------------------
+  // AGENDAS
+  // ---------------------------
 
-// DELETE AGENDA
-http.post(
-  "http://127.0.0.1:8000/admin/agendas/delete/:id",
-  async ({ params }) => {
-    const id = Number((params as any).id);
-    if (!id) {
-      return HttpResponse.json({ error: "Invalid id" }, { status: 400 });
+  // GET AGENDAS
+  http.get("http://127.0.0.1:8000/admin/agendas", () => {
+    return HttpResponse.json(mockAgendas);
+  }),
+
+  // ADD AGENDA (FormData)
+  http.post(
+    "http://127.0.0.1:8000/admin/agendas/add",
+    async ({ request }) => {
+      const fd = await request.formData();
+
+      const title = fd.get("title")?.toString() || "";
+      const description = fd.get("description")?.toString() || "";
+      const datetime = fd.get("datetime")?.toString() || "";
+      const location = fd.get("location")?.toString() || "";
+      const img = fd.get("image") as File | null;
+
+      const newAgenda = {
+        id: Math.floor(Math.random() * 10000),
+        title,
+        description,
+        datetime,
+        location,
+        image_url: img ? URL.createObjectURL(img) : "",
+        status: false, // start as inactive
+      };
+
+      mockAgendas.push(newAgenda);
+
+      return HttpResponse.json(newAgenda, { status: 201 });
     }
-    
-    mockAgendas = mockAgendas.filter((a) => a.id !== id);
-    return HttpResponse.json({ ok: true }, { status: 200 });
-  }
-)
+  ),
+
+  // DELETE AGENDA
+  http.post(
+    "http://127.0.0.1:8000/admin/agendas/delete/:id",
+    async ({ params }) => {
+      const id = Number((params as any).id);
+      if (!id) {
+        return HttpResponse.json({ error: "Invalid id" }, { status: 400 });
+      }
+
+      mockAgendas = mockAgendas.filter((a) => a.id !== id);
+      return HttpResponse.json({ ok: true }, { status: 200 });
+    }
+  ),
+
+  http.get("http://127.0.0.1:8000/menu/appconfig", () => {
+    const mockTabs = [
+      { key: "agendas", label: "Agenda List" },
+      { key: "products", label: "Product Items" },
+      { key: "news", label: "Latest News" },
+      { key: "videos", label: "Video Library" },
+      { key: "users", label: "User Management" },
+      { key: "feedback", label: "Feedback Center" },
+    ];
+
+    return HttpResponse.json({ tabs: mockTabs });
+  })
 ];
