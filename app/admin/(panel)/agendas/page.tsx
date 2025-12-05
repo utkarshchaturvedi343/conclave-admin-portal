@@ -7,6 +7,7 @@ import {
     addAgenda,
     deleteAgenda,
     editAgenda,
+    updateAgendaStatus,
 } from "@/lib/api";
 import { getMockRole } from "@/lib/mockRole";
 
@@ -221,7 +222,7 @@ export default function AgendasPage() {
 
         setError(null);
         try {
-            await deleteAgenda(id); // hits /admin/agendas/updateStatus/:id
+            await updateAgendaStatus(id); // hits /admin/agendas/updateStatus/:id
             await reload();
         } catch (err) {
             console.error(err);
@@ -235,7 +236,7 @@ export default function AgendasPage() {
         setError(null);
         try {
             const res = await fetch(`${API_BASE}/admin/agendas/delete/${id}`, {
-                method: "POST",
+                method: "DELETE",
                 credentials: "include",
                 mode: "cors",
             });
@@ -298,13 +299,12 @@ export default function AgendasPage() {
         setSaving(true);
         try {
             const fd = new FormData();
-            fd.append("id", String(id));
             fd.append("title", cleanedTitle.trim());
             fd.append("description", cleanedDescrition.trim());
             fd.append("date_time", datetime);
             fd.append("location", cleanedLocation.trim());
             if (editingImageUrl) fd.append("image", editingImageUrl);
-            await addAgenda(fd);
+            await editAgenda(id, fd);
 
             const data = await getAgendas();
             const arr = Array.isArray(data) ? data.map(normalizeAgenda) : [];

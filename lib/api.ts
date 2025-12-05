@@ -9,21 +9,27 @@ export const ENDPOINTS = {
     NEWS_ADD: "/admin/news/add",
     NEWS_DELETE: (id: number | string) => `/admin/news/delete/${id}`,
     NEWS_UPDATE_STATUS: (id: number | string) => `/admin/news/update/${id}`,
-    NEWS_EDIT: `/admin/news/edit`,
+    NEWS_EDIT: (id: number | string) => `/admin/news/edit${id}`,
     USERS_LIST: "/admin/users",
     USERS_ADD: "/admin/users/add",
     USERS_UPLOAD_CSV: "/admin/users/upload_csv",
     USERS_UPDATE_STATUS: (id: number | string) => `/admin/users/update/${id}`,
+    USERS_DELETE: (id: number | string) => `/admin/users/delete/${id}`,
     VIDEO_LIST: "/admin/videos",
     VIDEO_ADD: "/admin/videos/add",
     VIDEO_UPDATE_STATUS: (id: number | string) => `/admin/videos/update/${id}`,
+    VIDEO_DELETE: (id: number | string) => `/admin/videos/delete/${id}`,
+    VIDEO_EDIT: (id: number | string) => `/admin/videos/edit/${id}`,
     PRODUCTS_LIST: "/admin/products",
     PRODUCTS_ADD: "/admin/products/add",
     PRODUCTS_UPDATE_STATUS: (id: number | string) => `/admin/products/updateStatus/${id}`,
+    PRODUCTS_DELETE: (id: number | string) => `/admin/products/delete/${id}`,
+    PRODUCTS_EDIT: (id: number | string) => `/admin/products/edit/${id}`,
     getAgendas: "/admin/agendas",
     addAgenda: "/admin/agendas/add",
     updateAgendaStatus: (id: number | string) => `/admin/agendas/updateStatus/${id}`,
-    editAgenda: "/admin/agendas/edit",
+    editAgenda: (id: number | string) => `/admin/agendas/edit/${id}`,
+    deleteAgenda: (id: number | string) => `/admin/agendas/delete/${id}`,
 };
 
 export async function apiRequest(path: string, options: RequestInit = {}) {
@@ -32,9 +38,13 @@ export async function apiRequest(path: string, options: RequestInit = {}) {
     const req: RequestInit = {
         credentials: "include",
         mode: "cors",
+        cache: "no-store",
         headers: {
             ...(options.headers || {}),
             ...(csrf ? { "X-CSRF-Token": csrf } : {}),
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            Pragma: "no-cache",
+            Expires: "0",
         },
         ...options,
     };
@@ -125,21 +135,21 @@ export async function addNews(content: string) {
 
 export async function deleteNews(id: number) {
     return apiRequest(ENDPOINTS.NEWS_DELETE(id), {
-        method: "POST",
+        method: "DELETE",
     });
 }
 
 export async function updateNewsStatus(id: number) {
     return apiRequest(ENDPOINTS.NEWS_UPDATE_STATUS(id), {
-        method: "POST",
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
     });
 }
 
 export async function editNews(id: number, content: string) {
-    return apiRequest(ENDPOINTS.NEWS_EDIT, {
+    return apiRequest(ENDPOINTS.NEWS_EDIT(id), {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, content }),
+        body: JSON.stringify({ content }),
     });
 }
 
@@ -172,13 +182,19 @@ export async function uploadUsersCSV(file: File) {
     return apiRequest(ENDPOINTS.USERS_UPLOAD_CSV, {
         method: "POST",
         body: form,
-        // DO NOT set Content-Type manually when sending FormData — the browser will set boundary
     });
 }
 
 export async function updateUserStatus(id: number) {
     return apiRequest(ENDPOINTS.USERS_UPDATE_STATUS(id), {
-        method: "POST",
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+    });
+}
+
+export async function deleteUserFromBE(id: number) {
+    return apiRequest(ENDPOINTS.USERS_DELETE(id), {
+        method: "DELETE",
         headers: { "Content-Type": "application/json" },
     });
 }
@@ -192,7 +208,6 @@ export async function getVideos() {
 
 export async function addVideo(payload: {
     title: string;
-    speaker?: string;
     category?: string;
     url: File;
 }) {
@@ -205,11 +220,31 @@ export async function addVideo(payload: {
 
 export async function updateVideoStatus(id: number) {
     return apiRequest(ENDPOINTS.VIDEO_UPDATE_STATUS(id), {
-        method: "POST",
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
     });
 }
 
+export async function deleteVideo(id: number) {
+    return apiRequest(ENDPOINTS.VIDEO_DELETE(id), {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+    });
+}
+
+export async function editVideo(id: number, payload: {
+    title?: string;
+    category?: string;
+    url?: File;
+}) {
+    {
+        return apiRequest(ENDPOINTS.VIDEO_EDIT(id), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
+    }
+}
 export async function getProducts() {
     return apiRequest(ENDPOINTS.PRODUCTS_LIST, {
         method: "GET",
@@ -226,9 +261,25 @@ export async function addProduct(form: FormData) {
 
 export async function updateProductStatus(id: number) {
     return apiRequest(ENDPOINTS.PRODUCTS_UPDATE_STATUS(id), {
-        method: "POST",
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
     });
+}
+
+export async function deleteProduct(id: number) {
+    return apiRequest(ENDPOINTS.PRODUCTS_DELETE(id), {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+    });
+}
+
+export async function editProduct(id: number, form: FormData) {
+    {
+        return apiRequest(ENDPOINTS.PRODUCTS_EDIT(id), {
+            method: "POST",
+            body: form,
+        });
+    }
 }
 
 export async function getAgendas() {
@@ -246,15 +297,22 @@ export async function addAgenda(fd: FormData) {
 }
 
 export async function deleteAgenda(id: number) {
-    return apiRequest(ENDPOINTS.updateAgendaStatus(id), {
-        method: "POST",
+    return apiRequest(ENDPOINTS.deleteAgenda(id), {
+        method: "DELETE",
     });
 }
 
-export async function editAgenda(payload: FormData) {
-    return apiRequest(ENDPOINTS.editAgenda, {
+export async function editAgenda(id: number, payload: FormData) {
+    return apiRequest(ENDPOINTS.editAgenda(id), {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: payload,
+    });
+}
+
+export async function updateAgendaStatus(id: number) {
+    return apiRequest(ENDPOINTS.updateAgendaStatus(id), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
     });
 }
 

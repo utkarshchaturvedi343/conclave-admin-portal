@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { getVideos, addVideo, updateVideoStatus } from "@/lib/api";
+import { getVideos, addVideo, updateVideoStatus, deleteVideo, editVideo } from "@/lib/api";
 import { getMockRole } from "@/lib/mockRole";
 
 type Video = {
@@ -160,14 +160,13 @@ export default function VideosPage() {
         setSaving(true);
         try {
             const payload: any = {
-                id,
                 title: editingTitle.trim(),
                 category: editingCaption.trim(),
             };
             if (editingUrl instanceof File) {
                 payload.url = editingUrl;
             }
-            await addVideo(payload);
+            await editVideo(id, payload);
 
             // Reload list
             const data = await getVideos();
@@ -179,6 +178,22 @@ export default function VideosPage() {
             setError("Failed to update video.");
         } finally {
             setSaving(false);
+        }
+    }
+
+    async function handleDeleteVideo(id: number) {
+        if (!confirm("Are you sure you want to delete this video?")) return;
+        setError(null);
+        setActionLoadingId(id);
+        try {
+            await deleteVideo(id);
+            const data = await getVideos();
+            setVideos(Array.isArray(data) ? data.map(normalizeItem) : []);
+        } catch (err) {
+            console.error(err);
+            setError("Failed to delete video.");
+        } finally {
+            setActionLoadingId(null);
         }
     }
 
@@ -399,7 +414,7 @@ export default function VideosPage() {
                                                         padding: "6px 10px",
                                                         borderRadius: 8,
                                                     }}
-                                                    onClick={() => updateVideoStatus(v.id)}
+                                                    onClick={() => handleDeleteVideo(v.id)}
                                                 >
                                                     Delete
                                                 </button>
@@ -413,7 +428,7 @@ export default function VideosPage() {
                                                         padding: "6px 10px",
                                                         borderRadius: 8,
                                                     }}
-                                                    onClick={() => updateVideoStatus(v.id)}
+                                                    onClick={() => setStatus(v.id, !v.status)}
                                                 >
                                                     Approve
                                                 </button>

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { getUsers, addUser, uploadUsersCSV, updateUserStatus } from "@/lib/api";
+import { getUsers, addUser, uploadUsersCSV, updateUserStatus, deleteUserFromBE } from "@/lib/api";
 import { getMockRole } from "@/lib/mockRole";
 
 type User = {
@@ -162,6 +162,23 @@ export default function UsersPage() {
         } catch (err) {
             console.error(err);
             setError("Failed to update status.");
+        } finally {
+            setActionLoadingId(null);
+        }
+    }
+
+    async function deleteUser(id: number, newStatus: boolean) {
+        const confirmText = newStatus ? "Approve this user?" : "Revoke user access?";
+        if (!confirm(confirmText)) return;
+        setError(null);
+        setActionLoadingId(id);
+        try {
+            await deleteUserFromBE(id);
+            const data = await getUsers();
+            setUsers(Array.isArray(data) ? data.map(normalizeItem) : []);
+        } catch (err) {
+            console.error(err);
+            setError("Failed to delete User.");
         } finally {
             setActionLoadingId(null);
         }
@@ -350,7 +367,7 @@ export default function UsersPage() {
                                                         <button
                                                             className="btn"
                                                             style={{ background: "#fff", color: "#c22053" }}
-                                                            onClick={() => setStatus(u.id, false)}
+                                                            onClick={() => deleteUser(u.id, false)}
                                                             disabled={actionLoadingId === u.id}
                                                         >
                                                             {actionLoadingId === u.id ? "..." : "Delete"}

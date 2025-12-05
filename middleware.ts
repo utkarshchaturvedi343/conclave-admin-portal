@@ -9,7 +9,12 @@ export function middleware(req: NextRequest) {
             return NextResponse.next();
         }
 
-        const cookie = req.cookies.get("sessionid")?.value || "";
+        const cookie = req.cookies.get("sessionid")?.value;
+        if (!cookie) {
+            // no cookie → always redirect to login
+            url.pathname = "/admin/login";
+            return NextResponse.redirect(url);
+        }
         console.log("MIDDLEWARE COOKIE:", cookie);
 
         const role = cookie.includes("mock-super") ? "super" : cookie.includes("mock-session-token") ? "user" : null;

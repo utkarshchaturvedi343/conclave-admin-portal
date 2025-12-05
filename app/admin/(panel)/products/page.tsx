@@ -5,6 +5,8 @@ import {
     getProducts,
     addProduct,
     updateProductStatus,
+    deleteVideo,
+    editProduct,
 } from "@/lib/api";
 import { getMockRole } from "@/lib/mockRole";
 
@@ -168,7 +170,7 @@ export default function ProductsPage() {
         if (!confirm("Are you sure you want to delete this product?")) return;
         setError(null);
         try {
-            await updateProductStatus(id); // real delete (mocked below)
+            await deleteVideo(id); // real delete (mocked below)
             setItems((prev) => prev.filter((p) => p.id !== id));
         } catch (err) {
             console.error(err);
@@ -211,12 +213,11 @@ export default function ProductsPage() {
         setSaving(true);
         try {
             const fd = new FormData();
-            fd.append("id", String(id));
             fd.append("name", editingName.trim());
             if (editingImageFile) fd.append("image", editingImageFile);
             if (editingAttachmentFile) fd.append("attachment", editingAttachmentFile);
 
-            await addProduct(fd);
+            await editProduct(id, fd);
 
             await reload();
 
